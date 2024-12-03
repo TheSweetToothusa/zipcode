@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sweet Tooth Delivery Calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-8">
+    <div class="bg-white p-8 rounded-lg shadow-lg max-w-md w-full">
+        <h1 class="text-2xl font-bold mb-6 text-center">Sweet Tooth Delivery Calculator</h1>
+        
+        <div class="mb-6">
+            <label for="zipCode" class="block text-gray-700 mb-2">Enter Zip Code:</label>
+            <input type="text" id="zipCode" 
+                   class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                   pattern="[0-9]{5}" maxlength="5">
+        </div>
+
+        <div class="mb-6">
+            <label for="baskets" class="block text-gray-700 mb-2">Number of Baskets:</label>
+            <input type="number" id="baskets" min="1" value="1"
+                   class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="mb-6">
+            <label for="sameOffice" class="block text-gray-700 mb-2">Additional Baskets Delivery:</label>
+            <select id="sameOffice" 
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="none">No additional baskets</option>
+                <option value="same">Same office (+$3/basket)</option>
+                <option value="different">Different office, same building (+$5/basket)</option>
+            </select>
+        </div>
+
+        <button onclick="calculatePrice()" 
+                class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors">
+            Calculate Price
+        </button>
+
+        <div id="result" class="mt-6 text-center text-lg font-semibold hidden"></div>
+    </div>
+
+    <script>
+        const zipPrices = {
+            "33004": 25, "33008": 20, "33009": 20, "33010": 25, "33011": 25, "33012": 25, "33013": 25, 
+            "33014": 25, "33015": 25, "33016": 25, "33018": 25, "33019": 20, "33020": 20, "33021": 20, 
+            "33022": 20, "33023": 20, "33024": 20, "33025": 20, "33026": 25, "33027": 25, "33028": 25, 
+            "33029": 30, "33030": 65, "33031": 65, "33032": 65, "33033": 65, "33034": 65, "33035": 65, 
+            "33039": 65, "33054": 20, "33055": 20, "33056": 20, "33060": 30, "33062": 30, "33063": 35, 
+            "33064": 35, "33065": 40, "33066": 35, "33067": 40, "33068": 35, "33069": 30, "33071": 35, 
+            "33073": 40, "33076": 40, "33101": 25, "33109": 40, "33122": 30, "33124": 25, "33125": 25, 
+            "33126": 30, "33127": 20, "33128": 25, "33129": 25, "33130": 25, "33131": 25, "33132": 25, 
+            "33133": 25, "33134": 25, "33135": 25, "33136": 25, "33137": 20, "33138": 20, "33139": 25, 
+            "33140": 20, "33141": 20, "33142": 25, "33143": 30, "33144": 30, "33145": 25, "33146": 25, 
+            "33147": 20, "33149": 30, "33150": 20, "33154": 20, "33155": 30, "33156": 35, "33157": 50, 
+            "33158": 40, "33159": 30, "33160": 15, "33161": 20, "33162": 15, "33165": 35, "33166": 30, 
+            "33167": 20, "33168": 20, "33169": 20, "33170": 65, "33172": 30, "33173": 35, "33175": 35, 
+            "33176": 35, "33177": 65, "33178": 30, "33179": 15, "33180": 15, "33181": 20, "33182": 35, 
+            "33183": 40, "33184": 35, "33185": 40, "33186": 40, "33187": 65, "33189": 65, "33190": 65, 
+            "33192": 40, "33193": 40, "33194": 40, "33196": 65, "33301": 25, "33302": 25, "33304": 25, 
+            "33305": 30, "33306": 30, "33307": 30, "33308": 30, "33309": 30, "33311": 30, "33312": 25, 
+            "33313": 30, "33314": 25, "33315": 25, "33316": 25, "33317": 30, "33319": 30, "33320": 35, 
+            "33321": 30, "33322": 30, "33323": 25, "33324": 30, "33325": 30, "33326": 30, "33327": 25, 
+            "33328": 25, "33330": 30, "33331": 30, "33332": 30, "33334": 30, "33351": 25, "33394": 65, 
+            "33426": 50, "33428": 50, "33431": 50, "33432": 50, "33433": 50, "33434": 65, "33435": 65, 
+            "33436": 65, "33437": 40, "33441": 40, "33442": 55, "33444": 55, "33445": 65, "33446": 65, 
+            "33472": 65, "33473": 55, "33484": 50, "33486": 55, "33487": 55, "33496": 55, "33498": 30
+        };
+
+        function calculatePrice() {
+            const zipCode = document.getElementById('zipCode').value;
+            const baskets = parseInt(document.getElementById('baskets').value) || 1;
+            const sameOffice = document.getElementById('sameOffice').value;
+            const resultDiv = document.getElementById('result');
+            
+            let basePrice;
+            if (zipPrices.hasOwnProperty(zipCode)) {
+                basePrice = zipPrices[zipCode];
+            } else {
+                // Calculate price based on $2/mile if zip not found
+                basePrice = "Calculate manually at $2/mile";
+            }
+
+            let additionalFee = 0;
+            if (sameOffice === 'same') {
+                additionalFee = 3 * (baskets - 1);
+            } else if (sameOffice === 'different') {
+                additionalFee = 5 * (baskets - 1);
+            }
+
+            resultDiv.classList.remove('hidden');
+            
+            if (typeof basePrice === 'number') {
+                const totalPrice = basePrice + additionalFee;
+                resultDiv.textContent = `Delivery Price: $${totalPrice}`;
+                resultDiv.classList.remove('text-red-500');
+                resultDiv.classList.add('text-green-600');
+            } else {
+                resultDiv.textContent = basePrice;
+                resultDiv.classList.remove('text-green-600');
+                resultDiv.classList.add('text-red-500');
+            }
+        }
+    </script>
+</body>
+</html>
